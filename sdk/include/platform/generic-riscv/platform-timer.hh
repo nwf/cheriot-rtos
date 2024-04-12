@@ -75,6 +75,12 @@ class StandardClint : private utils::NoCopyNoMove
 		*pmtimercmphigh = curmtimehigh;
 	}
 
+	static void clear()
+	{
+		volatile uint32_t *pmtimercmphigh = pmtimercmp + 1;
+		*pmtimercmphigh = -1; // Prevent spurious interrupts.
+	}
+
 	private:
 #ifdef IBEX_SAFE
 	/**

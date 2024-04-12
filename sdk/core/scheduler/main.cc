@@ -270,15 +270,20 @@ namespace sched
 
 		ExceptionGuard g{[=]() { sched_panic(mcause, mepc, mtval); }};
 
+		bool tick = false;
 		switch (mcause)
 		{
 			// Explicit yield call
 			case MCAUSE_ECALL_MACHINE:
-				schedNeeded = true;
+			{
+				schedNeeded           = true;
+				Thread *currentThread = Thread::current_get();
+				tick = currentThread && currentThread->is_ready();
 				break;
+			}
 			case MCAUSE_INTR | MCAUSE_MTIME:
-				Timer::do_interrupt();
 				schedNeeded = true;
+				tick        = true;
 				break;
 			case MCAUSE_INTR | MCAUSE_MEXTERN:
 				schedNeeded = false;
@@ -310,8 +315,13 @@ namespace sched
 			default:
 				sched_panic(mcause, mepc, mtval);
 		}
+		if (tick)
+		{
+			Timer::expiretimers();
+		}
 		auto newContext =
 		  schedNeeded ? Thread::schedule(sealedTStack) : sealedTStack;
+		Timer::update();
 
 		if constexpr (Accounting)
 		{

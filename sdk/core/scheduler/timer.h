@@ -38,17 +38,22 @@ namespace
 			setnext(TIMERCYCLES_PER_TICK);
 		}
 
-		static void do_interrupt()
+		static void update()
 		{
-			++Thread::ticksSinceBoot;
 
-			expiretimers();
-			setnext(TIMERCYCLES_PER_TICK);
+			if (Thread::waitingList == nullptr)
+			{
+				clear();
+			}
+			else
+			{
+				setnext(TIMERCYCLES_PER_TICK);
+			}
 		}
 
-		private:
 		static void expiretimers()
 		{
+			++Thread::ticksSinceBoot;
 			if (Thread::waitingList == nullptr)
 			{
 				return;

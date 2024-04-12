@@ -511,6 +511,11 @@ namespace
 			return priority;
 		}
 
+		bool is_ready()
+		{
+			return state == ThreadState::Ready;
+		}
+
 		~ThreadImpl()
 		{
 			// We have static definition of threads. We only create threads in
