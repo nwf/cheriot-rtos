@@ -310,6 +310,7 @@ namespace sched
 				// We cannot continue exiting this thread, make sure we will
 				// pick a new one.
 				schedNeeded  = true;
+				tick         = true;
 				sealedTStack = nullptr;
 				break;
 			default:
@@ -321,7 +322,10 @@ namespace sched
 		}
 		auto newContext =
 		  schedNeeded ? Thread::schedule(sealedTStack) : sealedTStack;
-		Timer::update();
+		if (schedNeeded)
+		{
+			Timer::update();
+		}
 
 		if constexpr (Accounting)
 		{

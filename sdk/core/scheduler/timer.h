@@ -28,6 +28,7 @@ namespace
 
 	class Timer final : private TimerCore
 	{
+		inline static uint64_t lastTickTime = 0;
 		public:
 		static void interrupt_setup()
 		{
@@ -47,13 +48,18 @@ namespace
 			}
 			else
 			{
-				setnext(TIMERCYCLES_PER_TICK);
+				setnext(TIMERCYCLES_PER_TICK * (Thread::waitingList->expiryTime - Thread::ticksSinceBoot));
 			}
 		}
 
 		static void expiretimers()
 		{
-			++Thread::ticksSinceBoot;
+			// TODO: Should be reading the timer's time, not the core's time.
+			// They are currently the same value, but that's not guaranteed.
+			uint64_t now = rdcycle64();
+			uint32_t elapsed = now - lastTickTime;
+			lastTickTime = now;
+			Thread::ticksSinceBoot += std::max(1U, elapsed / TIMERCYCLES_PER_TICK);
 			if (Thread::waitingList == nullptr)
 			{
 				return;

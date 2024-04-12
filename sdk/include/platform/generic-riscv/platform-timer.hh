@@ -51,7 +51,7 @@ class StandardClint : private utils::NoCopyNoMove
 	 * interrupt. Writing to any half is enough to clear the interrupt,
 	 * which is also why 2. is important.
 	 */
-	static void setnext(uint32_t cycles)
+	static void setnext(uint64_t cycles)
 	{
 		/// the high 32 bits of the 64-bit MTIME register
 		volatile uint32_t *pmtimercmphigh = pmtimercmp + 1;
@@ -67,18 +67,19 @@ class StandardClint : private utils::NoCopyNoMove
 		} while (curmtimehigh != *pmtimerhigh);
 
 		// Add tick cycles to current time. Handle carry bit.
-		curmtimehigh += __builtin_add_overflow(curmtime, cycles, &curmtimenew);
+		curmtimehigh +=
+		  __builtin_add_overflow(curmtime, (cycles & 0xffffffff), &curmtimenew);
 
 		// Write the new MTIMECMP value, at which the next interrupt fires.
 		*pmtimercmphigh = -1; // Prevent spurious interrupts.
 		*pmtimercmp     = curmtimenew;
-		*pmtimercmphigh = curmtimehigh;
+		*pmtimercmphigh = curmtimehigh + (cycles >> 32);
 	}
 
 	static void clear()
 	{
 		volatile uint32_t *pmtimercmphigh = pmtimercmp + 1;
-		*pmtimercmphigh = -1; // Prevent spurious interrupts.
+		*pmtimercmphigh                   = -1; // Prevent spurious interrupts.
 	}
 
 	private:
