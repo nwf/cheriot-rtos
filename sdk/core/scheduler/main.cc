@@ -298,6 +298,7 @@ namespace sched
 					  std::tie(schedNeeded, std::ignore, std::ignore) =
 					    futex_wake(Capability{&word}.address());
 				  });
+				tick = schedNeeded;
 				break;
 			case MCAUSE_THREAD_EXIT:
 				// Make the current thread non-runnable.

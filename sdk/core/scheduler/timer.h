@@ -28,7 +28,9 @@ namespace
 
 	class Timer final : private TimerCore
 	{
-		inline static uint64_t lastTickTime = 0;
+		inline static uint64_t lastTickTime         = 0;
+		inline static uint32_t accumulatedTickError = 0;
+
 		public:
 		static void interrupt_setup()
 		{
@@ -41,14 +43,23 @@ namespace
 
 		static void update()
 		{
-
-			if (Thread::waitingList == nullptr)
+			auto *thread             = Thread::current_get();
+			bool  waitingListIsEmpty = ((Thread::waitingList == nullptr) ||
+                                       (Thread::waitingList->expiryTime == -1));
+			bool  threadHasNoPeers =
+			  (thread == nullptr) || (!thread->has_priority_peers());
+			if (waitingListIsEmpty && threadHasNoPeers)
 			{
+				Debug::log("No threads waiting on timer");
 				clear();
 			}
 			else
 			{
-				setnext(TIMERCYCLES_PER_TICK * (Thread::waitingList->expiryTime - Thread::ticksSinceBoot));
+				uint64_t ticksToWait = waitingListIsEmpty
+				                         ? 1
+				                         : (Thread::waitingList->expiryTime -
+				                            Thread::ticksSinceBoot);
+				setnext(TIMERCYCLES_PER_TICK * ticksToWait);
 			}
 		}
 
@@ -56,10 +67,24 @@ namespace
 		{
 			// TODO: Should be reading the timer's time, not the core's time.
 			// They are currently the same value, but that's not guaranteed.
-			uint64_t now = rdcycle64();
+			uint64_t now     = rdcycle64();
 			uint32_t elapsed = now - lastTickTime;
+			int32_t  error   = elapsed % TIMERCYCLES_PER_TICK;
+			if (elapsed < TIMERCYCLES_PER_TICK)
+			{
+				error = TIMERCYCLES_PER_TICK - error;
+			}
+			accumulatedTickError += error;
+			int32_t errorDirection = accumulatedTickError < 0 ? -1 : 1;
+			int32_t absoluteError  = accumulatedTickError * errorDirection;
+			if (absoluteError >= TIMERCYCLES_PER_TICK)
+			{
+				Thread::ticksSinceBoot += errorDirection;
+				accumulatedTickError += TIMERCYCLES_PER_TICK * -errorDirection;
+			}
 			lastTickTime = now;
-			Thread::ticksSinceBoot += std::max(1U, elapsed / TIMERCYCLES_PER_TICK);
+			Thread::ticksSinceBoot +=
+			  std::max(1U, elapsed / TIMERCYCLES_PER_TICK);
 			if (Thread::waitingList == nullptr)
 			{
 				return;

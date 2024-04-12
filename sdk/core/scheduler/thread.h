@@ -233,6 +233,12 @@ namespace
 					schedule        = true;
 				}
 			}
+			// If this is the same priority as the current thread, we may need
+			// to update the timer.
+			if (priority >= highestPriority)
+			{
+				schedule        = true;
+			}
 			if (reason == WakeReason::Timer || reason == WakeReason::Delete)
 			{
 				multiWaiter = nullptr;
@@ -514,6 +520,19 @@ namespace
 		bool is_ready()
 		{
 			return state == ThreadState::Ready;
+		}
+
+		/**
+		 * Returns true if there are other runnable threads with the same
+		 * priority as this thread.
+		 */
+		bool has_priority_peers()
+		{
+			Debug::Assert(state == ThreadState::Ready,
+			              "Checking for peers on thread that is in state {}, "
+			              "not ready",
+			              state);
+			return next != this;
 		}
 
 		~ThreadImpl()
