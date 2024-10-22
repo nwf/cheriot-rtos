@@ -28,6 +28,13 @@
 #define SPILL_SLOT_SIZE 32
 
 /*
+ * RISC-V custom-use mcause values for RTOS internal use.
+ * See also include/priv/riscv.h, which defines the same names and values in C
+ */
+#define MCAUSE_THREAD_EXIT 24
+#define MCAUSE_THREAD_INTERRUPT 25
+
+/*
  * The switcher uniformly speaks of registers using their RISC-V ELF psABI names
  * and not their raw index, as, broadly speaking, we use registers in a similar
  * way to C functions.  However, it's probably convenient to have a mapping
@@ -489,11 +496,11 @@ exception_entry_asm:
 	// mret, so reentrancy is no longer a concern.
 	cspecialw          mtdc, csp
 
-	// If mcause is 25, then we will jump into the error handler: another
-	// thread has signalled that this thread should be interrupted.  25 is a
-	// reserved exception number that we repurpose to indicate explicit
-	// interruption.
-	li                 t1, 25
+	// If mcause is MCAUSE_THREAD_INTERRUPT, then we will jump into the error
+	// handler: another thread has signalled that this thread should be
+	// interrupted.  MCAUSE_THREAD_INTERRUPT is a reserved exception number that
+	// we repurpose to indicate explicit interruption.
+	li                 t1, MCAUSE_THREAD_INTERRUPT
 	beq                t0, t1, .Lhandle_injected_error
 
 	// Environment call from M-mode is exception code 11.
@@ -791,7 +798,7 @@ exception_entry_asm:
 
 	// Value 24 is reserved for custom use.
 .Lset_mcause_and_exit_thread:
-	csrw               mcause, 24
+	csrw               mcause, MCAUSE_THREAD_EXIT
 	// The thread exit code expects the trusted stack pointer to be in csp and
 	// the stack pointer to be in mtdc.  After thread exit, we don't need the
 	// stack pointer so just put zero there.
@@ -997,7 +1004,7 @@ __Z25switcher_interrupt_threadPv:
 
 	// Mark the thread as interrupted.
 	// Store a magic value in mcause
-	li                 a2, 25
+	li                 a2, MCAUSE_THREAD_INTERRUPT
 	csw                a2, TrustedStack_offset_mcause(ca1)
 	// Return success
 	li                 a0, 1
