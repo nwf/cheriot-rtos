@@ -450,6 +450,7 @@ __Z26compartment_switcher_entryz:
 	// Atlas update: s0: switcher sealing key
 	li                 gp, SEAL_TYPE_SealedImportTableEntries
 	csetaddr           cs0, cs0, gp
+	csetbounds         cs0, cs0, 1
 	// Atlas update: gp: dead (again)
 	/*
 	 * The caller's handle to the callee (the sealed capability to the export
@@ -1012,6 +1013,7 @@ exception_entry_asm:
 	LoadCapPCC         csp, compartment_switcher_sealing_key
 	li                 gp, SEAL_TYPE_SealedTrustedStacks
 	csetaddr           csp, csp, gp
+	csetbounds         csp, csp, 1
 	cunseal            csp, ca0, csp
 	// Atlas update: sp: unsealed target thread trusted stack pointer
 
@@ -1848,6 +1850,7 @@ __Z25switcher_interrupt_threadPv:
 	LoadCapPCC         ca1, compartment_switcher_sealing_key
 	li                 a2, SEAL_TYPE_SealedTrustedStacks
 	csetaddr           ca1, ca1, a2
+	csetbounds         ca1, ca1, 1
 	/*
 	 * The target capability is in ca0.  Unseal, check tag and load the entry
 	 * point offset.
