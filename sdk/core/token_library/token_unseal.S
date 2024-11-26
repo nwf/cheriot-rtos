@@ -65,6 +65,7 @@ __sealingkey:
   auipcc ca0, %cheriot_compartment_hi(__sealingkey)
   clc    ca0, %cheriot_compartment_lo_i(.Lload_sealing_key)(ca0)
   csetaddr ca0, ca0, a2
+  csetbounds ca0, ca0, 1
 
   /* Unseal, clobbering authority */
   cunseal ca0, ca1, ca0
