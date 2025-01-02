@@ -350,6 +350,13 @@ rule("firmware")
 			end)
 		end
 
+		-- Add cflags to all dependencies.
+		local add_cflags = function (cflags)
+			visit_all_dependencies(function (target)
+				target:add('cxflags', cflags, {force = true})
+			end)
+		end
+
 		local software_revoker = false
 		if board.revoker then
 			local temporal_defines = { "TEMPORAL_SAFETY" }
@@ -392,6 +399,11 @@ rule("firmware")
 		-- If this board defines any macros, add them to all targets
 		if board.defines then
 			add_defines(board.defines)
+		end
+
+		-- If this board defines any cflags, add them to the toolchain
+		if board.cflags then
+			add_cflags(board.cflags)
 		end
 
 		add_defines("CPU_TIMER_HZ=" .. math.floor(board.timer_hz))
